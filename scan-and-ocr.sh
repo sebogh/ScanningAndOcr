@@ -2,6 +2,7 @@
 
 RESOLUTION=300
 LOCATION=/tmp
+DEVICE='hpaio:/net/hp_laserjet_pro_mfp_m127fw?ip=192.168.178.22&queue=false'
 
 # compute some paths
 TMP_PDF_BASE=`mktemp`
@@ -40,9 +41,9 @@ done
 # scan
 echo -e "${GREEN}######### scan ############${NC}"
 if [ "$ADF" = "true" ] ; then
-    COMMAND="${SCRIPT_DIR}/my-hp-scan --res=$RESOLUTION --size=a4 -mgray --adf --output=$OUTPUT_PDF"
+    COMMAND="${SCRIPT_DIR}/my-hp-scan -d ${DEVICE} --res=$RESOLUTION --size=a4 -mgray --adf --output=$OUTPUT_PDF"
 else 
-    COMMAND="${SCRIPT_DIR}/my-hp-scan --res=$RESOLUTION --size=a4 -mgray --output=$OUTPUT_PDF"
+    COMMAND="${SCRIPT_DIR}/my-hp-scan -d ${DEVICE} --res=$RESOLUTION --size=a4 -mgray --output=$OUTPUT_PDF"
 fi
 echo $COMMAND
 $COMMAND
