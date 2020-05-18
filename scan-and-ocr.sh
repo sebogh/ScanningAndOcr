@@ -2,7 +2,7 @@
 
 RESOLUTION=300
 LOCATION=/tmp
-DEVICE='hpaio:/net/hp_laserjet_pro_mfp_m127fw?ip=192.168.178.22&queue=false'
+DEVICE='hpaio:/net/hp_laserjet_pro_mfp_m521dw?ip=192.168.178.42&queue=false'
 
 # compute some paths
 TMP_PDF_BASE=`mktemp`
@@ -24,12 +24,18 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
+HP_SCAN=hp-scan
+
 # parse command line (see: https://stackoverflow.com/a/13359121)
 for i in "$@"
 do
     case $i in
 	--adf)
 	    ADF="true" # scan multiple pages single side using the ADF
+	    shift
+	    ;;
+	--dup)
+	    DUP="true" # scan multiple pages single side using the ADF
 	    shift
 	    ;;
 	*)
@@ -41,9 +47,13 @@ done
 # scan
 echo -e "${GREEN}######### scan ############${NC}"
 if [ "$ADF" = "true" ] ; then
-    COMMAND="${SCRIPT_DIR}/my-hp-scan -d ${DEVICE} --res=$RESOLUTION --size=a4 -mgray --adf --output=$OUTPUT_PDF"
+    if [ "$DUP" = "true" ] ; then
+        COMMAND="${HP_SCAN} -d ${DEVICE} --res=$RESOLUTION --size=a4 -mgray --dup --output=$OUTPUT_PDF"
+    else
+        COMMAND="${HP_SCAN} -d ${DEVICE} --res=$RESOLUTION --size=a4 -mgray --adf --output=$OUTPUT_PDF"
+    fi
 else 
-    COMMAND="${SCRIPT_DIR}/my-hp-scan -d ${DEVICE} --res=$RESOLUTION --size=a4 -mgray --output=$OUTPUT_PDF"
+    COMMAND="${HP_SCAN} -d ${DEVICE} --res=$RESOLUTION --size=a4 -mgray --output=$OUTPUT_PDF"
 fi
 echo $COMMAND
 $COMMAND

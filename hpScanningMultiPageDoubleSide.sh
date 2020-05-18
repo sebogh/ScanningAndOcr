@@ -9,4 +9,28 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
-xfce4-terminal -x ${SCRIPT_DIR}/hpScanningSinglePageSingleSide.sh --wait
+# parse command line (see: https://stackoverflow.com/a/13359121)
+for i in "$@"
+do
+    case $i in
+	--wait)
+	    WOF=true # whether to wait if child some-how fails
+	    shift
+	    ;;
+	*)
+	    
+	    ;;
+    esac
+done
+
+
+# execute scan-and-ocr.sh with the correct parameters 
+${SCRIPT_DIR}/scan-and-ocr.sh --adf --dup
+rc=$?
+
+# wait on failure if desired
+if [ "$WOF" = "true" ] ; then
+    if [[ $rc != 0 ]]; then
+	read -p 'Press any key...'
+    fi
+fi
