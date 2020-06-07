@@ -61,7 +61,7 @@ rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
 # ocr
 echo -e "${GREEN}######### ocr ############${NC}"
-COMMAND="convert -density 300 $OUTPUT_PDF -alpha Off -depth 8 $TMP_TIFF"
+COMMAND="convert -density 300 $OUTPUT_PDF -alpha Off -deskew 40% +repage -gravity south -depth 8 $TMP_TIFF"
 echo $COMMAND
 $COMMAND
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
