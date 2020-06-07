@@ -8,7 +8,7 @@ DEVICE='hpaio:/net/hp_laserjet_pro_mfp_m521dw?ip=192.168.178.42&queue=false'
 TMP_PDF_BASE=`mktemp`
 TMP_PDF=${TMP_PDF_BASE}.pdf
 TMP_TIFF=`mktemp --suffix=".tiff"`
-OUTPUT_BASE=${LOCATION}/scan_"`date +%Y-%m-%d-%H-%M-%S`"
+OUTPUT_BASE=${LOCATION}/"`date +%Y%m%d`"_
 OUTPUT_PDF=${OUTPUT_BASE}.pdf
 
 #colors (see: https://stackoverflow.com/a/5947802)
