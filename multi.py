@@ -1,10 +1,10 @@
 import os
 import subprocess
 import sys
+import tempfile
+import shutil
+import glob
 from multiprocessing import Pool
-
-tmp_dir_name = "/home/sebastian.bogan/blub/private-repos/ScanningAndOcr/data"
-merged_file = "/home/sebastian.bogan/blub/private-repos/ScanningAndOcr/data/merged.pdf"
 
 
 def de_skew(file_name):
@@ -31,20 +31,32 @@ def process_page(file_name):
     return ocr(file_name)
 
 
-def pdf_merge(pdf_files, merged_file):
-    cmd = ['gs', '-sDEVICE=pdfwrite', '-dCompatibilityLevel=1.4', '-dPDFSETTINGS=/ebook',
-           '-dNOPAUSE', '-dQUIET', '-dBATCH', '-sOutputFile=%s' % merged_file]
+def pdf_merge(pdf_files):
+    merged_file = tempfile.NamedTemporaryFile(prefix="scanAndOcr-", suffix=".pdf", delete=False)
+    merged_file_name = merged_file.name
+    merged_file.close()
+    cmd = ['gs', '-sDEVICE=pdfwrite', '-dCompatibilityLevel=1.4', #'-dPDFSETTINGS=/ebook',
+           '-dNOPAUSE', '-dQUIET', '-dBATCH', '-sOutputFile=%s' % merged_file_name]
     cmd.extend(pdf_files)
     print(str.join(" ", cmd))
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     _, stderr = process.communicate()
-    return {"code": process.returncode, "stderr": stderr}
+    return {"code": process.returncode, "stderr": stderr, "pdf_file": merged_file_name}
 
 
-if __name__ == '__main__':
+def scan(tmp_dir_name):
+    for filename in glob.glob(os.path.join("/home/sebastian.bogan/blub/private-repos/ScanningAndOcr/data", '*.*')):
+        shutil.copy(filename, tmp_dir_name)
+
     _, _, file_names = next(os.walk(tmp_dir_name))
-    files = map(lambda x: os.path.join(tmp_dir_name, x), file_names)
-    with Pool(2) as p:
+    file_paths = map(lambda x: os.path.join(tmp_dir_name, x), file_names)
+    return file_paths
+
+
+def doit():
+    tmp_dir_name = tempfile.mkdtemp()
+    files = scan(tmp_dir_name)
+    with Pool(4) as p:
         processed = p.map(process_page, files)
         errors = list(filter(lambda x: x["code"] != 0, processed))
         if errors:
@@ -52,8 +64,12 @@ if __name__ == '__main__':
                 print("failed to process %s: %s" % (e["file"], e["stderr"]))
             sys.exit(1)
         pdf_files = map(lambda x: x["pdf_file"], processed)
-        result = pdf_merge(pdf_files, merged_file)
+        result = pdf_merge(pdf_files)
         if result["code"] != 0:
             print("failed to merge: %s" % result["stderr"])
             sys.exit(1)
-        print(merged_file)
+        print(result["pdf_file"])
+
+
+if __name__ == '__main__':
+    doit()
