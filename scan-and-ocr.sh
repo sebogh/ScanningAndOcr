@@ -51,28 +51,18 @@ function checkRC {
 
 # execute command (if not dry)
 function doit {
-  echo "$1"
+  echo -e "${GREEN}######### $1 ############${NC}"
+  echo "$2"
   if [ "$DRY" != "true" ] ; then
-    $1
+    $2
     checkRC $?
   fi
 }
 
-# scan -> tiff
-echo -e "${GREEN}######### scan -> tiff ############${NC}"
-doit "scanimage -d ${DEVICE} --format=tiff -x 210 -y 297 --resolution=300 ${SOURCE}> ${TMP_TIFF}"
-
-# tiff -> pdf
-echo -e "${GREEN}######### tiff -> pdf ############${NC}"
-doit "convert ${TMP_TIFF} ${TMP_PDF}"
-
-# ocr pdf -> pdf
-echo -e "${GREEN}######### ocr ############${NC}"
-doit "ocrmypdf -l deu -d --deskew --clean $* ${TMP_PDF} ${OUTPUT_PDF}"
-
-# view
-echo -e "${GREEN}######### opening ############${NC}"
-doit "nohup /usr/bin/evince ${OUTPUT_PDF} >/dev/null 2>/dev/null"
+doit "scan -> tiff" "scanimage -d ${DEVICE} --format=tiff -x 210 -y 297 --resolution=300 ${SOURCE}> ${TMP_TIFF}"
+doit "tiff -> pdf" "convert ${TMP_TIFF} ${TMP_PDF}"
+doit "ocr" "ocrmypdf -l deu -d --deskew --clean $* ${TMP_PDF} ${OUTPUT_PDF}"
+doit "opening" "nohup /usr/bin/evince ${OUTPUT_PDF} >/dev/null 2>/dev/null"
 
 echo -e "${GREEN}created $OUTPUT_PDF${NC}"
 
