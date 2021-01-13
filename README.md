@@ -1,1 +1,1 @@
-wrappers around hp-scan
+wrappers around scanimage and ocrmypdf 

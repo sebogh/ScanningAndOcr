@@ -1,89 +1,79 @@
 #!/bin/bash
 
-RESOLUTION=300
-LOCATION=/tmp
 DEVICE='hpaio:/net/hp_laserjet_pro_mfp_m521dw?ip=192.168.178.42&queue=false'
 
 # compute some paths
-TMP_PDF_BASE=`mktemp`
-TMP_PDF=${TMP_PDF_BASE}.pdf
-TMP_TIFF=`mktemp --suffix=".tiff"`
-OUTPUT_BASE=${LOCATION}/"`date +%Y%m%d`"_
-OUTPUT_PDF=${OUTPUT_BASE}.pdf
+BASE=$(mktemp)
+TMP_TIFF=${BASE}-tmp.tiff
+TMP_PDF=${BASE}-tmp.pdf
+OUTPUT_PDF=${BASE}.pdf
 
 #colors (see: https://stackoverflow.com/a/5947802)
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
-
-# try to find this scripts directory
-SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-  SOURCE="$(readlink "$SOURCE")"
-  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
-done
-SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-
-HP_SCAN=hp-scan
 
 # parse command line (see: https://stackoverflow.com/a/13359121)
 for i in "$@"
 do
     case $i in
 	--adf)
-	    ADF="true" # scan multiple pages single side using the ADF
+	    SOURCE="--source=ADF" # scan multiple pages single side using the ADF
 	    shift
 	    ;;
 	--dup)
-	    DUP="true" # scan multiple pages single side using the ADF
+	    SOURCE="--source=DUP" # scan multiple pages duplicate side using the ADF
+	    shift
+	    ;;
+	--dry)
+	    DRY="true" # dry run
+	    shift
+	    ;;
+	--wait)
+	    WAIT="true" # wait for user input on failure
 	    shift
 	    ;;
 	*)
-	    
 	    ;;
     esac
 done
 
-# scan
-echo -e "${GREEN}######### scan ############${NC}"
-if [ "$ADF" = "true" ] ; then
-    if [ "$DUP" = "true" ] ; then
-        COMMAND="${HP_SCAN} -d ${DEVICE} --res=$RESOLUTION --size=a4 -mgray --dup --output=$OUTPUT_PDF"
-    else
-        COMMAND="${HP_SCAN} -d ${DEVICE} --res=$RESOLUTION --size=a4 -mgray --adf --output=$OUTPUT_PDF"
+
+# check return code and exit (potentially waiting for user confirmation)
+function checkRC {
+  if [[ $1 != 0 ]]
+  then
+    if [ "$WAIT" = "true" ] ; then
+    	read -p 'Press any key...'
     fi
-else 
-    COMMAND="${HP_SCAN} -d ${DEVICE} --res=$RESOLUTION --size=a4 -mgray --output=$OUTPUT_PDF"
-fi
-echo $COMMAND
-$COMMAND
-rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+    exit $1
+  fi
+}
 
-# ocr
+# execute command (if not dry)
+function doit {
+  echo "$1"
+  if [ "$DRY" != "true" ] ; then
+    $1
+    checkRC $?
+  fi
+}
+
+# scan -> tiff
+echo -e "${GREEN}######### scan -> tiff ############${NC}"
+doit "scanimage -d ${DEVICE} --format=tiff -x 210 -y 297 --resolution=300 ${SOURCE}> ${TMP_TIFF}"
+
+# tiff -> pdf
+echo -e "${GREEN}######### tiff -> pdf ############${NC}"
+doit "convert ${TMP_TIFF} ${TMP_PDF}"
+
+# ocr pdf -> pdf
 echo -e "${GREEN}######### ocr ############${NC}"
-COMMAND="convert -density 300 $OUTPUT_PDF -alpha Off -deskew 40% +repage -gravity south -depth 8 $TMP_TIFF"
-echo $COMMAND
-$COMMAND
-rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
-COMMAND="tesseract $TMP_TIFF $TMP_PDF_BASE -l deu pdf"
-echo $COMMAND
-$COMMAND
-rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
-COMMAND="cp $TMP_PDF $OUTPUT_PDF"
-echo $COMMAND
-$COMMAND
-rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+doit "ocrmypdf -l deu -d --deskew --clean $* ${TMP_PDF} ${OUTPUT_PDF}"
 
-# compress
-echo -e "${GREEN}######### compress ############${NC}"
-COMMAND="gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET -dBATCH -sOutputFile=$OUTPUT_PDF $TMP_PDF"
-echo $COMMAND
-$COMMAND
-rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
-
-## view 
+# view
 echo -e "${GREEN}######### opening ############${NC}"
-nohup /usr/bin/evince ${OUTPUT_PDF} >/dev/null 2>/dev/null
+doit "nohup /usr/bin/evince ${OUTPUT_PDF} >/dev/null 2>/dev/null"
 
 echo -e "${GREEN}created $OUTPUT_PDF${NC}"
+
 
