@@ -61,7 +61,7 @@ function doit {
 doit "scan -> pdf" "hp-scan -d ${DEVICE} --res=300 --size=a4 ${SOURCE} --output=${TMP_PDF}"
 doit "ocr" "ocrmypdf -l deu -d --deskew --clean $* ${TMP_PDF} ${OUTPUT_PDF}"
 
-nohup /usr/bin/evince ${OUTPUT_PDF} >/dev/null 2>/dev/null
+nohup /usr/bin/pdfarranger ${OUTPUT_PDF} >/dev/null 2>/dev/null
 
 echo -e "${GREEN}created $OUTPUT_PDF${NC}"
 
