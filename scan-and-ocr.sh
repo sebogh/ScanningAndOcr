@@ -1,6 +1,7 @@
 #!/bin/bash
 
-DEVICE='hpaio:/net/hp_laserjet_pro_mfp_m521dw?ip=192.168.178.42&queue=false'
+DEVICE='hpaio:/net/HP_LaserJet_Pro_MFP_M521dw?ip=192.168.178.42&queue=false'
+
 
 # compute some paths
 BASE=$(mktemp)
